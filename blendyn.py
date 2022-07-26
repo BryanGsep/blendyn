@@ -282,12 +282,7 @@ class BLENDYN_PG_plot_vars(bpy.types.PropertyGroup):
             description = "Frequency in plotting",
             default = 1
     )
-    plot_type: EnumProperty(
-            items = [("TIME_HISTORY", "Time history", "Time history", '', 1),\
-                    ("AUTOSPECTRUM", "Autospectrum", "Autospectrum", '', 2)], \
-                    name = "plot type",
-                    default = "TIME_HISTORY"
-    )
+
     fft_remove_mean: BoolProperty(
             name = "Subtract mean",
             description = "Subtract the mean value before calculating the FFT",
@@ -568,6 +563,7 @@ class BLENDYN_PG_settings_scene(bpy.types.PropertyGroup):
             name = "MBDyn elements collection index",
             default = 0
     )
+
     # MBDyn's node count
     num_nodes: IntProperty(
             name = "MBDyn nodes number",
@@ -622,7 +618,7 @@ class BLENDYN_PG_settings_scene(bpy.types.PropertyGroup):
             name = "Scaling Factor",
             default = 1.0
     )
-    # Lower limit of range import for elemens
+    # Lower limit of range import for elements
     min_elem_import: IntProperty(
             name = "first element to import",
             description = "Lower limit of integer labels for range import for elements",
@@ -679,6 +675,30 @@ class BLENDYN_PG_settings_scene(bpy.types.PropertyGroup):
             name = "Plot variable index",
             description = "index of the current variable to be plotted",
             default = 0
+    )
+    plot_engine: EnumProperty(
+        items=[("PYGAL", "Pygal", "Pygal", '', 2), \
+               ("MATPLOTLIB", "Matplotlib", "Matplotlib", '', 1), \
+               ("BOKEH", "Bokeh", "bokeh", '', 3)], \
+        name="plot engine",
+        default="MATPLOTLIB"
+    )
+    plot_type: EnumProperty(
+        items=[("TIME_HISTORY", "Time history", "Time history", '', 1), \
+               ("AUTOSPECTRUM", "Autospectrum", "Autospectrum", '', 2), \
+               ("TRAJECTORY", "Trajectory", "Trajectory", '', 3)], \
+        name="plot type",
+        default="TIME_HISTORY"
+    )
+
+    show_in_localhost: BoolProperty(
+        description = "Are you want to show your plot in localhost?",
+        default = False
+    )
+
+    save_as_png: BoolProperty(
+        description = "Are you want to save your plot as png?",
+        default = False
     )
 
     if HAVE_PLOT:
@@ -2098,6 +2118,59 @@ class BLENDYN_PT_components(bpy.types.Panel):
                 comp, "elements", \
                 comp, "el_index")
             col.prop(mbs, "comp_selected_elem", text = "Add")
+            if mbs.comp_selected_elem[:5] == "modal":
+                col = layout.column()
+                col.label(text="Modal node:")
+                row = col.row()
+                row.template_list("BLENDYN_UL_modal_nodes_list", \
+                                  "Modal nodes", \
+                                  mbs.elems[mbs.comp_selected_elem], "nodes", \
+                                  mbs.elems[mbs.comp_selected_elem], "node_index")
+                row = col.row()
+                row.prop(mbs.elems[mbs.comp_selected_elem], "selected_node", text = "Add:")
+                row = col.row()
+                split = row.split(factor = 0.5)
+                col1 = split.column()
+                col1.operator(BLENDYN_OT_element_add_node.bl_idname,
+                             text="Add node")
+                col2 = split.column()
+                col2.operator(BLENDYN_OT_element_remove_node.bl_idname,
+                              text="Remove node")
+                row = col.row()
+                row.operator(BLENDYN_OT_element_add_all_selected_nodes.bl_idname,
+                             text = "Add all selected node")
+                row.operator(BLENDYN_OT_element_remove_all_nodes.bl_idname,
+                             text = "Remove all nodes")
+
+                ## FEM Connection panel
+                col = layout.column()
+                col.label(text="Modal FEM Connect:")
+                row = col.row()
+                split = row.split(factor = 0.4)
+                col = split.column()
+                col.label(text="Name")
+                col = split.column()
+                split = col.split(factor = 0.5)
+                col = split.column()
+                col.label(text="Node 1")
+                col = split.column()
+                col.label(text="Node 2")
+                col = layout.column()
+                row = col.row()
+                row.template_list("BLENDYN_UL_fem_connections_list", \
+                                  "Modal FEM connections", \
+                                  mbs.elems[mbs.comp_selected_elem], "fem_connects", \
+                                  mbs.elems[mbs.comp_selected_elem], "connect_index")
+                row = col.row()
+                row.operator(BLENDYN_OT_element_add_new_connect.bl_idname,
+                             text = "Add new connect")
+                row.operator(BLENDYN_OT_element_remove_connect.bl_idname,
+                             text = "Remove connect")
+                row.operator(BLENDYN_OT_element_remove_all_connects.bl_idname,
+                             text = "Remove all connect")
+
+
+            col = layout.column()
             col.operator(BLENDYN_OT_component_add_elem.bl_idname, \
                     text = "Add Element")
             col.operator(BLENDYN_OT_component_remove_elem.bl_idname, \
